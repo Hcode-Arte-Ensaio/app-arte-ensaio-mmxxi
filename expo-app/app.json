@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "Conexão Arte",
+    "scheme": "conart",
+    "slug": "conexao-arte-sp",
+    "owner": "arte-ensaio",
+    "version": "6.1.2",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.arteensaio.sp.conexaoarte"
+    },
+    "android": {
+      "package": "com.arteensaio.sp.conexaoarte",
+      "versionCode": 34,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    "web": {
+      "favicon": "./assets/images/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "791687e1-d48f-409d-9c65-1fb5aa2452dc"
+      }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O aplicativo pode compartilhar as fotos que você escolher dos seus lugares favoritos.",
+          "cameraPermission": "O aplicativo pode compartilhar as fotos que você fotografar dos seus lugares favoritos.",
+          "microphonePermission": false
+        }
+      ]
+    ]
+  }
+}
