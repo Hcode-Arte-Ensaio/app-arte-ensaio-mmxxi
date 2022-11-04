@@ -45,17 +45,20 @@ export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
   const [name, setName] = useState(user.name);
   const [isLoadingPhoto, setIsLoadingPhoto] = useState(false);
   const [isLoadingForm, setIsLoadingForm] = useState(false);
-  const handleImagePicked = useCallback((result) => {
-    setIsLoadingPhoto(true);
+  const handleImagePicked = useCallback(
+    (result) => {
+      setIsLoadingPhoto(true);
 
-    if (!result.cancelled) {
-      uploadFile(result.uri)
-        .then(updatePhoto)
-        .then(() => showToast('Foto alterada com sucesso!'))
-        .catch((error) => showToast(error.message))
-        .finally(() => setIsLoadingPhoto(false));
-    }
-  }, []);
+      if (!result.cancelled) {
+        uploadFile(result.uri)
+          .then(updatePhoto)
+          .then(() => showToast('Foto alterada com sucesso!'))
+          .catch((error) => showToast(error.message))
+          .finally(() => setIsLoadingPhoto(false));
+      }
+    },
+    [uploadFile, updatePhoto, showToast]
+  );
 
   const checkPermissions = useCallback(() => {
     return new Promise<void>((resolve, reject) => {
@@ -73,7 +76,7 @@ export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
         reject('A câmera não está disponível na web.');
       }
     });
-  }, []);
+  }, [showToast]);
 
   const pickerCamera = useCallback(() => {
     checkPermissions()
@@ -91,7 +94,7 @@ export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
         }
       })
       .catch((error) => showToast(error.message));
-  }, []);
+  }, [checkPermissions, handleImagePicked, showToast]);
 
   const pickerGallery = useCallback(() => {
     ImagePicker.launchImageLibraryAsync({
@@ -107,7 +110,7 @@ export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
       })
       .catch((error) => showToast(error.message))
       .finally();
-  }, []);
+  }, [handleImagePicked, showToast]);
 
   const onSubmitForm = useCallback(() => {
     if (!name) {
@@ -120,7 +123,7 @@ export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
       .then(() => showToast('Nome salvo com sucesso!'))
       .catch((error) => showToast(error.message))
       .finally(() => setIsLoadingForm(false));
-  }, [name]);
+  }, [name, updateName, showToast]);
 
   useEffect(() => {
     if (user === null) {
