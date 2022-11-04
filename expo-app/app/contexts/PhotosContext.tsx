@@ -8,7 +8,7 @@ import {
   ReactNode,
 } from 'react';
 import * as ImagePicker from 'expo-image-picker';
-import { Dimensions, Platform } from 'react-native';
+import { Dimensions, Platform, ActivityIndicator } from 'react-native';
 import Animated, {
   Extrapolate,
   interpolate,
@@ -32,6 +32,8 @@ import { useApp } from './AppContext';
 import { useData } from './DataContext';
 import { Photo } from '../types/Photo';
 import { useAuth } from './AuthContext';
+import ProgressDialog from 'react-native-progress-dialog';
+import { where } from 'firebase/firestore';
 
 const ButtonBack = styled.View``;
 
@@ -61,7 +63,7 @@ const FloatButton = styled.View`
 `;
 
 type PhotosContextType = {
-  openPhotos: (value: User | Place, values: Photo[]) => void;
+  openPhotos: (value: Place, onChange: (photos: Photo[]) => void) => void;
 };
 
 export const PhotosContext = createContext<PhotosContextType>({
@@ -75,12 +77,11 @@ export type PhotosProviderProps = {
 export const PhotosProvider = ({ children }: PhotosProviderProps) => {
   const { user: isLogged, setOpen: setOpenLogin } = useAuth();
   const { setStatusBarStyle, showToast } = useApp();
-  const { uploadFile, putPhoto, getPhotos } = useData();
+  const { uploadFile, putPhoto, getPhotos, getPlaces } = useData();
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [isLoadingPhoto, setIsLoadingPhoto] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [place, setPlace] = useState<Place | null>(null);
-  const [posts, setPosts] = useState<Photo[]>([]);
   const [open, setOpen] = useState(false);
   const startX = Dimensions.get('window').width + 10;
   const buttonStartX = (Dimensions.get('window').width + 10) * -1;
@@ -89,6 +90,7 @@ export const PhotosProvider = ({ children }: PhotosProviderProps) => {
   const buttonLeft = useSharedValue(buttonStartX);
   const headerTop = useSharedValue(headerStartY);
   const scrollPercent = useSharedValue(0);
+  const [onCallbacks, setOnCallbacks] = useState<any[]>([]);
 
   const SPRING_CONFIG = {
     damping: 80,
@@ -136,17 +138,15 @@ export const PhotosProvider = ({ children }: PhotosProviderProps) => {
     };
   }, [scrollPercent]);
 
-  const openPhotos = useCallback((owner: User | Place, value: Photo[]) => {
-    setPosts([...value]);
-    if (typeof owner['email'] === 'string') {
-      setPlace(null);
-      setUser(owner as User);
-    } else {
-      setUser(null);
-      setPlace(owner as Place);
-    }
-    setOpen(true);
-  }, []);
+  const openPhotos = useCallback(
+    (value: Place, onChange: (photos: Photo[]) => void) => {
+      setOnCallbacks([onChange]);
+      setPhotos([]);
+      setPlace(value);
+      setOpen(true);
+    },
+    []
+  );
 
   const onScroll = useCallback((e) => {
     const total = e.nativeEvent.layoutMeasurement.height;
@@ -160,12 +160,20 @@ export const PhotosProvider = ({ children }: PhotosProviderProps) => {
       setIsLoadingPhoto(true);
       if (!result.cancelled && place) {
         uploadFile(result.uri)
-          .then((url) => putPhoto(place.id, url))
+          .then((url) => {
+            return putPhoto(place.id, url);
+          })
           .then((photo) => {
             return getPhotos([photo.id], 0);
           })
           .then((results) => {
             setPhotos([...results, ...photos]);
+            if (
+              onCallbacks.length > 0 &&
+              typeof onCallbacks[0] === 'function'
+            ) {
+              onCallbacks[0]([...results, ...photos]);
+            }
           })
           .finally(() => {
             showToast('Foto adicionada com sucesso!');
@@ -176,7 +184,7 @@ export const PhotosProvider = ({ children }: PhotosProviderProps) => {
           .finally(() => setIsLoadingPhoto(false));
       }
     },
-    [place, user, putPhoto, uploadFile, photos]
+    [place, putPhoto, uploadFile, photos]
   );
 
   const checkPermissions = useCallback(() => {
@@ -216,7 +224,7 @@ export const PhotosProvider = ({ children }: PhotosProviderProps) => {
         })
         .catch((error) => showToast(error.message));
     }
-  }, [handleImagePicked, checkPermissions, showToast, user]);
+  }, [handleImagePicked, checkPermissions, showToast]);
 
   const pickerGallery = useCallback(() => {
     if (!isLogged) {
@@ -245,12 +253,19 @@ export const PhotosProvider = ({ children }: PhotosProviderProps) => {
   }, [open]);
 
   useEffect(() => {
-    if (place && place.photos instanceof Array && place.photos.length > 0) {
-      getPhotos(place.photos, 0)
+    setPhotos([]);
+    if (place) {
+      setIsLoading(true);
+      getPlaces({ where: where('id', 'in', [place.id]) })
+        .then((places) => {
+          if (places.length > 0) {
+            return getPhotos(places[0].photos, 0);
+          }
+        })
         .then(setPhotos)
-        .finally(() => {});
+        .finally(() => setIsLoading(false));
     }
-  }, [place, getPhotos]);
+  }, [place, getPhotos, getPlaces]);
 
   return (
     <PhotosContext.Provider value={{ openPhotos }}>
@@ -274,8 +289,10 @@ export const PhotosProvider = ({ children }: PhotosProviderProps) => {
             marginBottom: -20,
           }}
         >
-          {place && <PlacePhotoList data={photos} onScroll={onScroll} />}
-          {user && <UserPhotoList onScroll={onScroll} />}
+          {isLoading && <ActivityIndicator color={Colors.Blue} />}
+          {!isLoading && place && (
+            <PlacePhotoList data={photos} onScroll={onScroll} />
+          )}
         </Canvas>
 
         <Animated.View style={animatedButtonStyle}>
@@ -322,7 +339,13 @@ export const PhotosProvider = ({ children }: PhotosProviderProps) => {
               icon={<BackIcon />}
               color="white"
               circle={true}
-              touchableProps={{ onPress: () => setOpen(false) }}
+              touchableProps={{
+                onPress: () => {
+                  setPlace(null);
+                  setPhotos([]);
+                  setOpen(false);
+                },
+              }}
             />
           </Shadow>
         </ButtonBack>
@@ -348,6 +371,11 @@ export const PhotosProvider = ({ children }: PhotosProviderProps) => {
           </HeaderTitle>
         )}
       </Animated.View>
+      <ProgressDialog
+        visible={isLoadingPhoto}
+        label="Enviando foto..."
+        loaderColor={Colors.Blue}
+      />
     </PhotosContext.Provider>
   );
 };

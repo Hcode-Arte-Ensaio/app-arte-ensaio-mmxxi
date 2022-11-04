@@ -6,6 +6,7 @@ import {
   NativeScrollEvent,
   VirtualizedList,
   Dimensions,
+  RefreshControl,
 } from 'react-native';
 import { Photo } from '../../types/Photo';
 import { PhotoItem } from '../PhotoItem';
@@ -23,6 +24,7 @@ export type PhotoListProps = {
   onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
   data: Photo[];
   loading?: boolean;
+  onRefresh?: () => void;
 };
 
 export const PhotoList = ({
@@ -30,6 +32,7 @@ export const PhotoList = ({
   data,
   onScroll,
   loading,
+  onRefresh,
 }: PhotoListProps) => {
   const [items, setItems] = useState<Photo[]>([]);
   const [isLoading, setIsLoading] = useState(loading);
@@ -42,6 +45,9 @@ export const PhotoList = ({
           data={items}
           extraData={items}
           initialNumToRender={2}
+          refreshControl={
+            <RefreshControl refreshing={loading} onRefresh={onRefresh} />
+          }
           renderItem={({ item, index }) => (
             <PhotoItemItem
               key={index}

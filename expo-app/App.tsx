@@ -29,9 +29,7 @@ const Drawer = createDrawerNavigator<typeof Screens>();
 export default function App() {
   const url = Linking.useURL();
 
-  useEffect(() => {
-    console.log('App', { url });
-  }, [url]);
+  useEffect(() => console.log('App', { url }), [url]);
 
   return (
     <NavigationContainer>

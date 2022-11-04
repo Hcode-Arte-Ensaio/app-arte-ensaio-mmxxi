@@ -27,16 +27,19 @@ export const PhotosScreen = ({ navigation }: PhotosScreenProps) => {
       .finally(() => {
         setLoading(false);
       });
-  }, []);
+  }, [getUserPhotos]);
 
   useEffect(() => {
     setLoading(true);
     const ubsubscribe = watchUserPhotos((photos) => {
-      console.log('watchUserPhotos', photos.length);
       setItems([...photos]);
       setLoading(false);
     });
-    return () => ubsubscribe();
+    return () => {
+      if (typeof ubsubscribe === 'function') {
+        ubsubscribe();
+      }
+    };
   }, [watchUserPhotos]);
 
   useEffect(() => getReloadDataScreen(), [getReloadDataScreen]);
@@ -46,7 +49,11 @@ export const PhotosScreen = ({ navigation }: PhotosScreenProps) => {
       <ScreenContent colors={ColorsBackground} style={{ height: 'auto' }}>
         <ScreenToolbar onPressBack={() => navigation.navigate(Screen.Places)} />
         <H1 blackText="Minhas" redText="Fotos" />
-        <PhotoList data={items} loading={loading} />
+        <PhotoList
+          data={items}
+          loading={loading}
+          onRefresh={getReloadDataScreen}
+        />
       </ScreenContent>
     </ScreenProvider>
   );

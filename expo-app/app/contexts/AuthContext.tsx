@@ -111,7 +111,7 @@ export const AuthProvider = ({ children }) => {
   const [fbUser, setFbUser] = useState<FbUser | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [open, setOpen] = useState(false);
-  const [formActive, setFormActive] = useState<FormType>('login');
+  const [formActive, setFormActive] = useState<FormType>('register');
   const left = useSharedValue(startX);
   const bottom = useSharedValue(startY);
 
@@ -224,11 +224,19 @@ export const AuthProvider = ({ children }) => {
 
   const setFirebaseUser = useCallback(
     (fbUser: FbUser, displayName?: string) => {
+      if (
+        !displayName &&
+        fbUser.providerData.length > 0 &&
+        fbUser.providerData[0].displayName
+      ) {
+        displayName = fbUser.providerData[0].displayName;
+      }
+
       setFbUser(fbUser);
       setUser({
         id: fbUser.uid,
         email: fbUser.email,
-        name: fbUser.displayName ?? displayName ?? 'Sem nome',
+        name: displayName ?? user.name ?? 'Sem nome',
         photo: {
           url:
             fbUser.photoURL ??
@@ -240,7 +248,7 @@ export const AuthProvider = ({ children }) => {
         .then(() => {})
         .catch((error) => showToast(error.message));
     },
-    []
+    [user]
   );
 
   const updatePhoto = useCallback(
@@ -355,6 +363,7 @@ export const AuthProvider = ({ children }) => {
         setFormReset();
         setFirebaseUser(result.user, formName);
         setOpen(false);
+
         return updateProfile(result.user, {
           displayName: formName,
         });

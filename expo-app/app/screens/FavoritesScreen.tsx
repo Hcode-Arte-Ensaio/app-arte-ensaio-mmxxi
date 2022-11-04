@@ -47,7 +47,11 @@ export const FavoritesScreen = ({ navigation }: FavoritesScreenProps) => {
       setItems(places);
       setLoading(false);
     }, page);
-    return () => ubsubscribe();
+    return () => {
+      if (typeof ubsubscribe === 'function') {
+        ubsubscribe();
+      }
+    };
   }, [watchPlacesFavorites, page]);
 
   return (

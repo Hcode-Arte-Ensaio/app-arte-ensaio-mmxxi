@@ -83,7 +83,7 @@ export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
       .then(() => {
         return ImagePicker.launchCameraAsync({
           allowsEditing: true,
-          aspect: [4, 3],
+          aspect: [1, 1],
           quality: 1,
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
         });
@@ -100,7 +100,7 @@ export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
     ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [4, 3],
+      aspect: [1, 1],
       quality: 1,
     })
       .then((result) => {
@@ -132,7 +132,7 @@ export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
   }, [user]);
 
   return (
-    <ScreenProvider>
+    <ScreenProvider keyboard={true}>
       <ScreenContent colors={ColorsBackground}>
         <ScreenToolbar onPressBack={() => navigation.navigate(Screen.Places)} />
         <H1 blackText="Editar" redText="Dados e Foto" />
@@ -166,6 +166,7 @@ export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
             ]}
           />
           <Divider />
+
           <Input
             label="Nome completo"
             textInputProps={{
@@ -173,6 +174,7 @@ export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
               onChangeText: (value) => setName(value),
             }}
           />
+
           <Button
             style={{ width: '100%', marginTop: 20 }}
             loading={isLoadingForm}

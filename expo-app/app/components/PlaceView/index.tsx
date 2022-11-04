@@ -265,6 +265,7 @@ export const PlaceView = ({ data, onChange }: PlaceViewProps) => {
   }, [data]);
 
   useEffect(() => {
+    setPhotos([]);
     if (place && place.photos instanceof Array && place.photos.length > 0) {
       getPhotos(
         place.photos.filter((_item, index) => index < 3),
@@ -327,7 +328,14 @@ export const PlaceView = ({ data, onChange }: PlaceViewProps) => {
                 color={place?.theme === 'dark' ? 'blue' : 'white'}
                 circle={true}
                 touchableProps={{
-                  onPress: () => openPhotos(place, []),
+                  onPress: () =>
+                    openPhotos(place, (photos) => {
+                      setPlace(
+                        Object.assign(place, {
+                          photos: photos.map((photo) => photo.id),
+                        })
+                      );
+                    }),
                 }}
               />
             </Toolbar>
@@ -377,7 +385,17 @@ export const PlaceView = ({ data, onChange }: PlaceViewProps) => {
                     <PhotoItemImage source={{ uri: photo?.url }} />
                   </PhotoItem>
                 ))}
-                <PhotoItem onPress={() => openPhotos(place, [])}>
+                <PhotoItem
+                  onPress={() => {
+                    openPhotos(place, (photos) => {
+                      setPlace(
+                        Object.assign(place, {
+                          photos: photos.map((photo) => photo.id),
+                        })
+                      );
+                    });
+                  }}
+                >
                   <PhotoItemImage
                     source={{ uri: place?.square?.url ?? place?.cover?.url }}
                   />

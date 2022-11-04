@@ -29,8 +29,6 @@ import {
   limit,
   deleteDoc,
   where,
-  startAt,
-  endAt,
 } from 'firebase/firestore';
 import { Place } from '../types/Place';
 import { useAuth } from './AuthContext';
@@ -127,7 +125,7 @@ export const DataProvider = ({ children }) => {
       xhr.onload = function () {
         resolve(xhr.response as Blob);
       };
-      xhr.onerror = function (e) {
+      xhr.onerror = function () {
         reject(new TypeError('Network request failed'));
       };
       xhr.responseType = 'blob';
@@ -136,26 +134,29 @@ export const DataProvider = ({ children }) => {
     });
   }, []);
 
-  const uploadFile = useCallback((uri: string) => {
-    return new Promise<string>((resolve, reject) => {
-      getBlobFile(uri)
-        .then(async (blob) => {
-          const storage = getStorage();
-          const name = String(uuid.v4());
-          const fileRef = ref(storage, name);
-          try {
-            await uploadBytes(fileRef, blob);
-            return await getDownloadURL(fileRef);
-          } catch (e) {
-            reject(new TypeError(e.message));
-          }
-        })
-        .then((url) => {
-          resolve(url);
-        })
-        .catch(reject);
-    });
-  }, []);
+  const uploadFile = useCallback(
+    (uri: string) => {
+      return new Promise<string>((resolve, reject) => {
+        getBlobFile(uri)
+          .then((blob) => {
+            const storage = getStorage();
+            const name = String(uuid.v4());
+            const fileRef = ref(storage, name);
+
+            uploadBytes(fileRef, blob)
+              .then(() => getDownloadURL(fileRef))
+              .then((url) => {
+                resolve(url);
+              })
+              .catch(reject);
+          })
+          .catch((e) => {
+            reject(e);
+          });
+      });
+    },
+    [getBlobFile]
+  );
 
   const getPlaces = useCallback(
     ({ where }: { where?: QueryConstraint }) => {
@@ -278,46 +279,48 @@ export const DataProvider = ({ children }) => {
         );
       }
     });
-  }, [user, setOpen]);
+  }, [user, setOpen, showToast, db]);
 
   const watchUser = useCallback(
     (onReceive?: (data: UserData) => void) => {
-      const docRef = doc(db, 'users', user.id);
+      if (user) {
+        const docRef = doc(db, 'users', user.id);
 
-      return onSnapshot(docRef, (snap) => {
-        const data = snap.data() as UserData;
-        setUserData(data);
-        if (typeof onReceive === 'function') {
-          onReceive(data);
-        }
-      });
+        return onSnapshot(docRef, (snap) => {
+          const data = snap.data() as UserData;
+          setUserData(data);
+          if (typeof onReceive === 'function') {
+            onReceive(data);
+          }
+        });
+      }
     },
-    [user]
+    [user, db]
   );
 
   const watchPlacesFavorites = useCallback(
     (onReceive: (places: Place[]) => void, page = 0) => {
-      const docRef = doc(db, 'users', user.id);
+      if (user) {
+        const docRef = doc(db, 'users', user.id);
 
-      return onSnapshot(docRef, (snap) => {
-        if ((snap.data().favorites ?? []).length === 0) {
-          onReceive([]);
-        } else {
-          getPlaces({
-            where: whereFB(
-              'id',
-              'in',
-              snap.data().favorites.splice(page * 10, 10)
-            ),
-          }).then((places) => {
-            if (typeof onReceive === 'function') {
-              onReceive(places);
-            }
-          });
-        }
-      });
+        return onSnapshot(docRef, (snap) => {
+          const data = snap.data();
+
+          if (!data || (data.favorites ?? []).length === 0) {
+            onReceive([]);
+          } else {
+            getPlaces({
+              where: whereFB('id', 'in', data.favorites.splice(page * 10, 10)),
+            }).then((places) => {
+              if (typeof onReceive === 'function') {
+                onReceive(places);
+              }
+            });
+          }
+        });
+      }
     },
-    [user, getPlaces]
+    [user, getPlaces, db]
   );
 
   const getPlacesFavorites = useCallback(
@@ -364,7 +367,7 @@ export const DataProvider = ({ children }) => {
         }
       });
     },
-    [user, setOpen]
+    [user, setOpen, db]
   );
 
   const addFavorites = useCallback(
@@ -381,7 +384,7 @@ export const DataProvider = ({ children }) => {
           });
       });
     },
-    [getFavorites]
+    [getFavorites, setFavorites, showToast]
   );
 
   const removeFavorites = useCallback(
@@ -398,21 +401,24 @@ export const DataProvider = ({ children }) => {
           });
       });
     },
-    [getFavorites]
+    [getFavorites, setFavorites, showToast]
   );
 
-  const getPlace = useCallback((placeId: number) => {
-    return new Promise<Place>((resolve, reject) => {
-      const docRef = doc(db, 'places', String(placeId));
+  const getPlace = useCallback(
+    (placeId: number) => {
+      return new Promise<Place>((resolve, reject) => {
+        const docRef = doc(db, 'places', String(placeId));
 
-      getDoc(docRef)
-        .then((docSnap) => resolve(docSnap.data() as Place))
-        .catch((error) => {
-          showToast('Não foi possível carregar os dados do local.');
-          reject(error);
-        });
-    });
-  }, []);
+        getDoc(docRef)
+          .then((docSnap) => resolve(docSnap.data() as Place))
+          .catch((error) => {
+            showToast('Não foi possível carregar os dados do local.');
+            reject(error);
+          });
+      });
+    },
+    [db]
+  );
 
   const putView = useCallback(
     (placeId: number) => {
@@ -420,27 +426,33 @@ export const DataProvider = ({ children }) => {
         addDoc(collection(db, 'places-views'), {
           placeId,
         })
-          .then((result) => {
-            resolve();
-          })
+          .then(() => resolve())
           .catch((error) => {
             showToast('Não foi possível registrar a visualização deste local.');
             reject(error);
           });
       });
     },
-    [user]
+    [db]
   );
 
   const getUser = useCallback(() => {
     return new Promise<UserData>((resolve, reject) => {
+      if (!user) {
+        reject(new TypeError('User not found'));
+      }
       getDoc(doc(db, 'users', user.id))
         .then((snap) => {
-          resolve(snap.data() as UserData);
+          const userData = (snap.data() ?? {
+            favorites: [],
+            photos: [],
+            rates: [],
+          }) as UserData;
+          resolve(userData);
         })
         .catch(reject);
     });
-  }, [user]);
+  }, [user, db]);
 
   const putRate = useCallback(
     (placeId: number, value: number) => {
@@ -488,12 +500,15 @@ export const DataProvider = ({ children }) => {
         }
       });
     },
-    [user, getUser]
+    [user, getUser, db]
   );
 
   const addPhotoToUser = useCallback(
     (photoDocRef: DocumentReference<DocumentData>) => {
       return new Promise<DocumentReference<DocumentData>>((resolve, reject) => {
+        if (!user) {
+          reject(new TypeError('User not found'));
+        }
         getUser()
           .then((userData) => {
             userData.photos = userData.photos ?? [];
@@ -515,7 +530,7 @@ export const DataProvider = ({ children }) => {
           .catch(reject);
       });
     },
-    [user, getUser]
+    [user, getUser, db]
   );
 
   const addPhotoToPlace = useCallback(
@@ -534,12 +549,15 @@ export const DataProvider = ({ children }) => {
           .catch(reject);
       });
     },
-    [user, getPlace]
+    [getPlace, putPlace]
   );
 
   const putPhoto = useCallback(
     (placeId: number, photoURL: string) => {
       return new Promise<Photo>((resolve, reject) => {
+        if (!user) {
+          reject(new TypeError('User not found'));
+        }
         addDoc(collection(db, 'photos'), {
           placeId,
           url: photoURL,
@@ -559,8 +577,12 @@ export const DataProvider = ({ children }) => {
             ).finally(() => {});
             return docRef;
           })
-          .then((docRef) => addPhotoToUser(docRef))
-          .then((docRef) => addPhotoToPlace(docRef, placeId))
+          .then((docRef) => {
+            return addPhotoToUser(docRef);
+          })
+          .then((docRef) => {
+            return addPhotoToPlace(docRef, placeId);
+          })
           .then((docRef) => {
             return getDoc(doc(db, 'photos', docRef.id));
           })
@@ -573,7 +595,7 @@ export const DataProvider = ({ children }) => {
           });
       });
     },
-    [user, addPhotoToUser, addPhotoToPlace]
+    [user, addPhotoToUser, addPhotoToPlace, db]
   );
 
   const getPhotos = useCallback(
@@ -584,6 +606,8 @@ export const DataProvider = ({ children }) => {
           args.push(
             whereFB(documentId(), 'in', photosId.splice(page * 10, 10))
           );
+        } else {
+          resolve([]);
         }
         getDocs(query(collection(db, 'photos'), ...args, limit(10)))
           .then((docsSnap) => {
@@ -594,20 +618,28 @@ export const DataProvider = ({ children }) => {
           .catch(reject);
       });
     },
-    [getFavorites, getPlaces]
+    [getFavorites, getPlaces, db]
   );
 
   const getUserPhotos = useCallback(() => {
     return new Promise<Photo[]>((resolve, reject) => {
-      if (userData) {
-        getPhotos(userData.photos, 0).then(resolve).catch(reject);
-      }
+      getUser()
+        .then((userData) => {
+          return getPhotos(userData.photos, 0);
+        })
+        .then((photos) => {
+          resolve(photos);
+        })
+        .catch(reject);
     });
-  }, [getPhotos, userData]);
+  }, [getPhotos, getUser]);
 
   const deletePhoto = useCallback(
     (photoId: string) => {
       return new Promise<void>((resolve, reject) => {
+        if (!user) {
+          reject(new TypeError('User not found'));
+        }
         getPhotos([photoId], 0).then((photos) => {
           if (photos.length > 0) {
             deleteDoc(doc(db, 'photos', photoId))
@@ -633,25 +665,28 @@ export const DataProvider = ({ children }) => {
         });
       });
     },
-    [userData, user, putPlace]
+    [userData, user, putPlace, getPlace, getPhotos, db]
   );
 
   const watchUserPhotos = useCallback(
     (onReceive: (photos: Photo[]) => void) => {
-      const docRef = doc(db, 'users', user.id);
-      return onSnapshot(docRef, (snap) => {
-        if ((snap.data().photos ?? []).length === 0) {
-          onReceive([]);
-        } else {
-          getUserPhotos().then((photos) => {
-            if (typeof onReceive === 'function') {
-              onReceive(photos);
-            }
-          });
-        }
-      });
+      if (user) {
+        const docRef = doc(db, 'users', user.id);
+        return onSnapshot(docRef, (snap) => {
+          const data = snap.data();
+          if (!data || (data.photos ?? []).length === 0) {
+            onReceive([]);
+          } else {
+            getUserPhotos().then((photos) => {
+              if (typeof onReceive === 'function') {
+                onReceive(photos);
+              }
+            });
+          }
+        });
+      }
     },
-    [user, getUserPhotos]
+    [user, getUserPhotos, db]
   );
 
   const putPhotoView = useCallback(
@@ -664,7 +699,7 @@ export const DataProvider = ({ children }) => {
           .catch(reject);
       });
     },
-    [user]
+    [db]
   );
 
   useEffect(() => {

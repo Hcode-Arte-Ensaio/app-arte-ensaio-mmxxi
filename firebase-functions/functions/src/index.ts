@@ -227,7 +227,7 @@ exports.blurOffensiveImages = functions.storage
     );
     const safeSearchResult = data[0].safeSearchAnnotation;
     functions.logger.log(
-      `SafeSearch results on image "${object.name}"`,
+      `Fazendo busca segura na imagem: "${object.name}"`,
       safeSearchResult
     );
 
@@ -242,8 +242,10 @@ exports.blurOffensiveImages = functions.storage
         safeSearchResult.violence !== 'VERY_UNLIKELY' ||
         safeSearchResult.racy !== 'VERY_UNLIKELY')
     ) {
-      functions.logger.log('Offensive image found. Blurring.');
+      functions.logger.log('Borrando imagem ofensiva.');
       return blurImage(object.name, object.bucket, object.metadata);
+    } else {
+      functions.logger.log('Imagem NÃO é ofensiva.');
     }
 
     return null;
