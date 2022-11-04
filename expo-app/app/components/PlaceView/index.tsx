@@ -21,7 +21,6 @@ import { useRate } from '../../contexts/RateContext';
 import { RouteIcon } from '../../icons/RouteIcon';
 import { StarIcon } from '../../icons/StarIcon';
 import { usePhotos } from '../../contexts/PhotosContext';
-import { Post } from '../../types/Post';
 import { useImageViewer } from '../../contexts/ImageViewerContext';
 import { useApp } from '../../contexts/AppContext';
 import { EditIcon } from '../../icons/EditIcon';
@@ -153,6 +152,7 @@ const PhotoItemText = styled.Text`
 const Description = styled.ScrollView`
   padding: 25px;
   padding-top: 20px;
+  padding-bottom: 50px;
 `;
 const DescriptionText = styled.Text`
   text-align: justify;
@@ -175,21 +175,6 @@ export type PlaceViewProps = {
 };
 
 export const PlaceView = ({ data, onChange }: PlaceViewProps) => {
-  const postData = {
-    createdAt: '2022-10-27 16:30:00',
-    id: 1,
-    photo: {
-      url: `https://conexao-arte.web.app/images/museu_do_ipiranga_square.jpg`,
-    },
-    user: {
-      email: 'joao@hcode.com.br',
-      name: 'Joao Rangel',
-      photo: {
-        url: 'https://lh3.googleusercontent.com/a/ALm5wu0YDxBadEeseByOOaLgr0CrcGCbAuOd3-1VEVfh8Bo=s83-c-mo',
-      },
-    },
-  } as Post;
-
   const { user } = useAuth();
   const { showToast } = useApp();
   const { openRate } = useRate();
@@ -281,7 +266,10 @@ export const PlaceView = ({ data, onChange }: PlaceViewProps) => {
 
   useEffect(() => {
     if (place && place.photos instanceof Array && place.photos.length > 0) {
-      getPhotos(place.photos.filter((_item, index) => index < 3))
+      getPhotos(
+        place.photos.filter((_item, index) => index < 3),
+        0
+      )
         .then(setPhotos)
         .finally(() => {});
     }
@@ -339,8 +327,7 @@ export const PlaceView = ({ data, onChange }: PlaceViewProps) => {
                 color={place?.theme === 'dark' ? 'blue' : 'white'}
                 circle={true}
                 touchableProps={{
-                  onPress: () =>
-                    openPhotos(place, [postData, postData, postData]),
+                  onPress: () => openPhotos(place, []),
                 }}
               />
             </Toolbar>
@@ -390,11 +377,7 @@ export const PlaceView = ({ data, onChange }: PlaceViewProps) => {
                     <PhotoItemImage source={{ uri: photo?.url }} />
                   </PhotoItem>
                 ))}
-                <PhotoItem
-                  onPress={() =>
-                    openPhotos(place, [postData, postData, postData])
-                  }
-                >
+                <PhotoItem onPress={() => openPhotos(place, [])}>
                   <PhotoItemImage
                     source={{ uri: place?.square?.url ?? place?.cover?.url }}
                   />

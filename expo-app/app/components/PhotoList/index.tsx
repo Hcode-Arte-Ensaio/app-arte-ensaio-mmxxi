@@ -2,9 +2,10 @@ import styled from '@emotion/native';
 import {
   ViewStyle,
   StyleProp,
-  VirtualizedList,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  VirtualizedList,
+  Dimensions,
 } from 'react-native';
 import { Photo } from '../../types/Photo';
 import { PhotoItem } from '../PhotoItem';
@@ -12,6 +13,7 @@ import { useState, useEffect } from 'react';
 
 const Wrap = styled.View`
   margin-bottom: 20px;
+  height: ${String(Dimensions.get('window').height - 157)}px;
 `;
 
 const PhotoItemItem = styled(PhotoItem)``;
@@ -38,9 +40,16 @@ export const PhotoList = ({
       {!isLoading && (
         <VirtualizedList<Photo>
           data={items}
+          extraData={items}
           initialNumToRender={2}
           renderItem={({ item, index }) => (
-            <PhotoItemItem key={index} data={item} />
+            <PhotoItemItem
+              key={index}
+              data={item}
+              onDelete={(item) =>
+                setItems([...items.filter((i) => i.id !== item.id)])
+              }
+            />
           )}
           keyExtractor={(item, index) => String(index + '-' + item.url)}
           getItemCount={() => items.length}

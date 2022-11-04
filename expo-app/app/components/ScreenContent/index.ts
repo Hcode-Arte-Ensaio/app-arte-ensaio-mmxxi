@@ -4,5 +4,5 @@ import { Canvas } from '../Canvas';
 
 export const ScreenContent = styled(Canvas)`
   padding: 18px 0;
-  height: ${String(Dimensions.get('window').height)}px;
+  min-height: ${String(Dimensions.get('window').height)}px;
 `;

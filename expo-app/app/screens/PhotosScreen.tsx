@@ -17,33 +17,32 @@ export const PhotosScreen = ({ navigation }: PhotosScreenProps) => {
   const [loading, setLoading] = useState(false);
   const { getUserPhotos, watchUserPhotos } = useData();
 
-  const getReloadDataScreen = useCallback((finish) => {
-    return new Promise<void>((resolve, reject) => {
-      setLoading(true);
-      getUserPhotos()
-        .then((photos) => {
-          setItems(photos);
-          resolve();
-        })
-        .catch(reject)
-        .finally(() => {
-          finish();
-          setLoading(false);
-        });
-    });
+  const getReloadDataScreen = useCallback(() => {
+    setLoading(true);
+    getUserPhotos()
+      .then((photos) => {
+        setItems([...photos]);
+      })
+      .catch(() => {})
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   useEffect(() => {
     setLoading(true);
     const ubsubscribe = watchUserPhotos((photos) => {
-      setItems(photos);
+      console.log('watchUserPhotos', photos.length);
+      setItems([...photos]);
       setLoading(false);
     });
     return () => ubsubscribe();
   }, [watchUserPhotos]);
 
+  useEffect(() => getReloadDataScreen(), [getReloadDataScreen]);
+
   return (
-    <ScreenProvider onRefresh={getReloadDataScreen}>
+    <ScreenProvider>
       <ScreenContent colors={ColorsBackground} style={{ height: 'auto' }}>
         <ScreenToolbar onPressBack={() => navigation.navigate(Screen.Places)} />
         <H1 blackText="Minhas" redText="Fotos" />

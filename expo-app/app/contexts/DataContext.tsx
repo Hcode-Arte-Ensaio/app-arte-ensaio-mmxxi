@@ -17,7 +17,6 @@ import {
   QueryConstraint,
   setDoc,
   where as whereFB,
-  limit as limitFB,
   getDoc,
   orderBy,
   onSnapshot,
@@ -29,6 +28,9 @@ import {
   documentId,
   limit,
   deleteDoc,
+  where,
+  startAt,
+  endAt,
 } from 'firebase/firestore';
 import { Place } from '../types/Place';
 import { useAuth } from './AuthContext';
@@ -42,18 +44,21 @@ export type DataContextType = {
   getPlaces: ({ where }: { where?: QueryConstraint }) => Promise<Place[]>;
   getPlacesSearch: (value: string) => Promise<Place[]>;
   getPlacesTop: () => Promise<Place[]>;
-  getPlacesFavorites: () => Promise<Place[]>;
+  getPlacesFavorites: (page?: number) => Promise<Place[]>;
   addFavorites: (placesId: number[]) => Promise<void>;
   removeFavorites: (placesId: number[]) => Promise<void>;
   getFavorites: () => Promise<number[]>;
   putView: (placeId: number) => Promise<void>;
   putRate: (placeId: number, value: number) => Promise<void>;
-  watchPlacesFavorites: (onReceived: (places: Place[]) => void) => Unsubscribe;
+  watchPlacesFavorites: (
+    onReceived: (places: Place[]) => void,
+    page: number
+  ) => Unsubscribe;
   watchUser: (onReceived?: (data: UserData) => void) => Unsubscribe;
   userData: UserData;
   setUserData: (value: UserData) => void;
   putPhoto: (placeId: number, photoURL: string) => Promise<Photo>;
-  getPhotos: (photosId: string[]) => Promise<Photo[]>;
+  getPhotos: (photosId: string[], page?: number) => Promise<Photo[]>;
   getUserPhotos: () => Promise<Photo[]>;
   watchUserPhotos: (onReceived: (photos: Photo[]) => void) => Unsubscribe;
   deletePhoto: (photoId: string) => Promise<void>;
@@ -132,7 +137,6 @@ export const DataProvider = ({ children }) => {
   }, []);
 
   const uploadFile = useCallback((uri: string) => {
-    console.log('uploadFile', uri);
     return new Promise<string>((resolve, reject) => {
       getBlobFile(uri)
         .then(async (blob) => {
@@ -147,7 +151,6 @@ export const DataProvider = ({ children }) => {
           }
         })
         .then((url) => {
-          console.log('uploadFile', url);
           resolve(url);
         })
         .catch(reject);
@@ -155,19 +158,13 @@ export const DataProvider = ({ children }) => {
   }, []);
 
   const getPlaces = useCallback(
-    ({
-      where,
-      limit,
-    }: {
-      where?: QueryConstraint;
-      limit?: QueryConstraint;
-    }) => {
+    ({ where }: { where?: QueryConstraint }) => {
       return new Promise<Place[]>((resolve, reject) => {
-        const q = query(
-          collection(db, 'places'),
-          where ? where : whereFB('id', '>', 0),
-          limit ? limit : limitFB(5)
-        );
+        const args: any = [];
+        if (where) {
+          args.push(where);
+        }
+        const q = query(collection(db, 'places'), ...args);
         getDocs(q)
           .then((querySnapshot) => {
             const items: Place[] = [];
@@ -197,7 +194,10 @@ export const DataProvider = ({ children }) => {
   const getPlacesSearch = useCallback(
     (value: string) => {
       return new Promise<Place[]>((resolve, reject) => {
-        const q = query(collection(db, 'places'));
+        const q = query(
+          collection(db, 'places'),
+          where('search', 'array-contains', value)
+        );
         getDocs(q)
           .then((querySnapshot) => {
             const items: Place[] = [];
@@ -296,7 +296,7 @@ export const DataProvider = ({ children }) => {
   );
 
   const watchPlacesFavorites = useCallback(
-    (onReceive: (places: Place[]) => void) => {
+    (onReceive: (places: Place[]) => void, page = 0) => {
       const docRef = doc(db, 'users', user.id);
 
       return onSnapshot(docRef, (snap) => {
@@ -304,7 +304,11 @@ export const DataProvider = ({ children }) => {
           onReceive([]);
         } else {
           getPlaces({
-            where: whereFB('id', 'in', snap.data().favorites),
+            where: whereFB(
+              'id',
+              'in',
+              snap.data().favorites.splice(page * 10, 10)
+            ),
           }).then((places) => {
             if (typeof onReceive === 'function') {
               onReceive(places);
@@ -316,22 +320,27 @@ export const DataProvider = ({ children }) => {
     [user, getPlaces]
   );
 
-  const getPlacesFavorites = useCallback(() => {
-    return new Promise<Place[]>((resolve, reject) => {
-      getFavorites()
-        .then((favorites) => {
-          if ((favorites ?? []).length === 0) {
-            resolve([]);
-          } else {
-            return getPlaces({
-              where: whereFB('id', 'in', favorites),
-            });
-          }
-        })
-        .then(resolve)
-        .catch(reject);
-    });
-  }, [getFavorites, getPlaces]);
+  const getPlacesFavorites = useCallback(
+    (page = 0) => {
+      return new Promise<Place[]>((resolve, reject) => {
+        getFavorites()
+          .then((favorites) => {
+            if ((favorites ?? []).length === 0) {
+              resolve([]);
+            } else {
+              favorites = favorites.splice(page * 10, 10);
+
+              return getPlaces({
+                where: whereFB('id', 'in', favorites),
+              });
+            }
+          })
+          .then(resolve)
+          .catch(reject);
+      });
+    },
+    [getFavorites, getPlaces]
+  );
 
   const setFavorites = useCallback(
     (favorites: number[]) => {
@@ -408,20 +417,10 @@ export const DataProvider = ({ children }) => {
   const putView = useCallback(
     (placeId: number) => {
       return new Promise<void>((resolve, reject) => {
-        getPlace(placeId)
-          .then((data) => {
-            const views = (data.views ?? 0) + 1;
-            return setDoc(
-              doc(db, 'places', String(placeId)),
-              {
-                views,
-              },
-              {
-                merge: true,
-              }
-            );
-          })
-          .then(() => {
+        addDoc(collection(db, 'places-views'), {
+          placeId,
+        })
+          .then((result) => {
             resolve();
           })
           .catch((error) => {
@@ -494,7 +493,6 @@ export const DataProvider = ({ children }) => {
 
   const addPhotoToUser = useCallback(
     (photoDocRef: DocumentReference<DocumentData>) => {
-      console.log('addPhotoToUser');
       return new Promise<DocumentReference<DocumentData>>((resolve, reject) => {
         getUser()
           .then((userData) => {
@@ -522,7 +520,6 @@ export const DataProvider = ({ children }) => {
 
   const addPhotoToPlace = useCallback(
     (photoDocRef: DocumentReference<DocumentData>, placeId: number) => {
-      console.log('addPhotoToPlace');
       return new Promise<DocumentReference<DocumentData>>((resolve, reject) => {
         getPlace(placeId)
           .then((place) => {
@@ -542,7 +539,6 @@ export const DataProvider = ({ children }) => {
 
   const putPhoto = useCallback(
     (placeId: number, photoURL: string) => {
-      console.log('putPhoto', placeId, photoURL);
       return new Promise<Photo>((resolve, reject) => {
         addDoc(collection(db, 'photos'), {
           placeId,
@@ -565,8 +561,12 @@ export const DataProvider = ({ children }) => {
           })
           .then((docRef) => addPhotoToUser(docRef))
           .then((docRef) => addPhotoToPlace(docRef, placeId))
-          .then((docRef) => getDoc(doc(db, 'photos', docRef.id)))
-          .then((docSnap) => resolve(docSnap.data() as Photo))
+          .then((docRef) => {
+            return getDoc(doc(db, 'photos', docRef.id));
+          })
+          .then((docSnap) => {
+            resolve(docSnap.data() as Photo);
+          })
           .catch((error) => {
             showToast('Não foi possível adicionar a foto.');
             reject(error);
@@ -577,15 +577,15 @@ export const DataProvider = ({ children }) => {
   );
 
   const getPhotos = useCallback(
-    (photosId: string[]) => {
+    (photosId: string[], page = 0) => {
       return new Promise<Photo[]>((resolve, reject) => {
-        getDocs(
-          query(
-            collection(db, 'photos'),
-            whereFB(documentId(), 'in', photosId),
-            limit(50)
-          )
-        )
+        const args = [];
+        if (photosId.length > 0) {
+          args.push(
+            whereFB(documentId(), 'in', photosId.splice(page * 10, 10))
+          );
+        }
+        getDocs(query(collection(db, 'photos'), ...args, limit(10)))
           .then((docsSnap) => {
             const photos: Photo[] = [];
             docsSnap.forEach((docSnap) => photos.push(docSnap.data() as Photo));
@@ -600,7 +600,7 @@ export const DataProvider = ({ children }) => {
   const getUserPhotos = useCallback(() => {
     return new Promise<Photo[]>((resolve, reject) => {
       if (userData) {
-        getPhotos(userData.photos).then(resolve).catch(reject);
+        getPhotos(userData.photos, 0).then(resolve).catch(reject);
       }
     });
   }, [getPhotos, userData]);
@@ -608,7 +608,7 @@ export const DataProvider = ({ children }) => {
   const deletePhoto = useCallback(
     (photoId: string) => {
       return new Promise<void>((resolve, reject) => {
-        getPhotos([photoId]).then((photos) => {
+        getPhotos([photoId], 0).then((photos) => {
           if (photos.length > 0) {
             deleteDoc(doc(db, 'photos', photoId))
               .then(() =>
@@ -639,7 +639,6 @@ export const DataProvider = ({ children }) => {
   const watchUserPhotos = useCallback(
     (onReceive: (photos: Photo[]) => void) => {
       const docRef = doc(db, 'users', user.id);
-
       return onSnapshot(docRef, (snap) => {
         if ((snap.data().photos ?? []).length === 0) {
           onReceive([]);
@@ -658,23 +657,10 @@ export const DataProvider = ({ children }) => {
   const putPhotoView = useCallback(
     (photoId: string) => {
       return new Promise<void>((resolve, reject) => {
-        getPhotos([photoId])
-          .then((photos) => {
-            if (photos.length > 0) {
-              return setDoc(
-                doc(db, 'photos', photoId),
-                {
-                  views: photos[0].views + 1,
-                },
-                {
-                  merge: true,
-                }
-              );
-            } else {
-              reject(new TypeError('Photo not found.'));
-            }
-          })
-          .then(resolve)
+        addDoc(collection(db, 'photos-views'), {
+          photoId,
+        })
+          .then(() => resolve())
           .catch(reject);
       });
     },

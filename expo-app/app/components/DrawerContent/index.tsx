@@ -19,8 +19,7 @@ import { CloseIcon } from '../../icons/CloseIcon';
 import { Screen } from '../../values/screens';
 import { InfoIcon } from '../../icons/InfoIcon';
 import { useAuth } from '../../contexts/AuthContext';
-import { useEffect } from 'react';
-import { useDrawerNavigation } from '../../hooks/useDrawerNavigation';
+import { useEffect, useState } from 'react';
 import { useData } from '../../contexts/DataContext';
 
 const Wrap = styled(Canvas)`
@@ -132,6 +131,7 @@ export type DrawerContentProps = {} & DrawerContentComponentProps;
 export const DrawerContent = (props: DrawerContentProps) => {
   const { user, logOut } = useAuth();
   const { userData } = useData();
+  const [logoutLoading, setLogoutLoading] = useState(false);
 
   useEffect(() => {
     if (user === null && typeof props.navigation.closeDrawer === 'function') {
@@ -172,8 +172,12 @@ export const DrawerContent = (props: DrawerContentProps) => {
               color="dark"
               radius={10}
               size="small"
+              loading={logoutLoading}
               propsTouchable={{
-                onPress: () => logOut(),
+                onPress: () => {
+                  setLogoutLoading(true);
+                  logOut();
+                },
               }}
             >
               Sair
@@ -181,20 +185,26 @@ export const DrawerContent = (props: DrawerContentProps) => {
           </HeaderContent>
         </Header>
         <AvatarWrap>
-          <Avatar
-            onPress={() => props.navigation.navigate(Screen.Profile)}
-            size={100}
-            imageProps={{
-              source: {
-                uri: user.photo.url,
-              },
-            }}
-          />
+          {user && (
+            <Avatar
+              onPress={() => props.navigation.navigate(Screen.Profile)}
+              size={100}
+              imageProps={{
+                source: {
+                  uri: user?.photo?.url,
+                },
+              }}
+            />
+          )}
         </AvatarWrap>
-        <UserDetails onPress={() => props.navigation.navigate(Screen.Profile)}>
-          <UserName>{user.name}</UserName>
-          <UserEmail>{user.email}</UserEmail>
-        </UserDetails>
+        {user && (
+          <UserDetails
+            onPress={() => props.navigation.navigate(Screen.Profile)}
+          >
+            <UserName>{user.name}</UserName>
+            <UserEmail>{user.email}</UserEmail>
+          </UserDetails>
+        )}
         <DrawerList>
           <DrawerItem onPress={() => props.navigation.navigate(Screen.Profile)}>
             <UserIcon />

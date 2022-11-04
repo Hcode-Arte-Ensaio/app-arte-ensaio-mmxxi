@@ -4,12 +4,10 @@ import {
   StyleProp,
   Dimensions,
   ActivityIndicator,
-  VirtualizedList,
 } from 'react-native';
 import { Place } from '../../types/Place';
 import { PlaceItem } from '../PlaceItem';
 import { useState, useEffect } from 'react';
-import { FlashList } from '@shopify/flash-list';
 
 const Wrap = styled.View`
   margin-bottom: 20px;
@@ -74,6 +72,7 @@ export const PlaceList = ({
 }: PlaceListProps) => {
   const [items, setItems] = useState<Place[]>(data);
   const [isLoading, setIsLoading] = useState(loading);
+
   useEffect(() => setIsLoading(loading), [loading]);
   useEffect(() => {
     setItems([...data]);
@@ -91,18 +90,8 @@ export const PlaceList = ({
             </PlaceHolderThumb>
           </PlaceHolder>
         ))}
-      {!isLoading && (
-        <VirtualizedList<Place>
-          data={items}
-          initialNumToRender={6}
-          renderItem={({ item, index }) => (
-            <PlaceListItem key={index} data={item} />
-          )}
-          keyExtractor={(item, index) => String(index + '-' + item.id)}
-          getItemCount={() => items.length}
-          getItem={(data, index) => data[index]}
-        />
-      )}
+      {!isLoading &&
+        items.map((item) => <PlaceListItem key={item.id} data={item} />)}
     </Wrap>
   );
 };

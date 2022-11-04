@@ -249,6 +249,7 @@ export const AuthProvider = ({ children }) => {
         if (user && fbUser) {
           updateProfile(fbUser, {
             photoURL,
+            displayName: user.name,
           })
             .then(() => {
               setUser({ ...user, photo: { url: photoURL } });
@@ -273,6 +274,7 @@ export const AuthProvider = ({ children }) => {
         if (user && fbUser) {
           updateProfile(fbUser, {
             displayName,
+            photoURL: user?.photo?.url,
           })
             .then(() => {
               setUser({ ...user, name: displayName });

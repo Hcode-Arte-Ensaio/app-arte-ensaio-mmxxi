@@ -26,12 +26,12 @@ import { BackIcon } from '../icons/BackIcon';
 import { CameraIcon } from '../icons/CameraIcon';
 import { GalleryIcon } from '../icons/GalleryIcon';
 import { Place } from '../types/Place';
-import { Post } from '../types/Post';
 import { User } from '../types/User';
 import { Colors, ColorsBackground } from '../values/colors';
 import { useApp } from './AppContext';
 import { useData } from './DataContext';
 import { Photo } from '../types/Photo';
+import { useAuth } from './AuthContext';
 
 const ButtonBack = styled.View``;
 
@@ -61,7 +61,7 @@ const FloatButton = styled.View`
 `;
 
 type PhotosContextType = {
-  openPhotos: (value: User | Place, values: Post[]) => void;
+  openPhotos: (value: User | Place, values: Photo[]) => void;
 };
 
 export const PhotosContext = createContext<PhotosContextType>({
@@ -73,13 +73,14 @@ export type PhotosProviderProps = {
 };
 
 export const PhotosProvider = ({ children }: PhotosProviderProps) => {
+  const { user: isLogged, setOpen: setOpenLogin } = useAuth();
   const { setStatusBarStyle, showToast } = useApp();
   const { uploadFile, putPhoto, getPhotos } = useData();
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [isLoadingPhoto, setIsLoadingPhoto] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [place, setPlace] = useState<Place | null>(null);
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<Photo[]>([]);
   const [open, setOpen] = useState(false);
   const startX = Dimensions.get('window').width + 10;
   const buttonStartX = (Dimensions.get('window').width + 10) * -1;
@@ -135,7 +136,7 @@ export const PhotosProvider = ({ children }: PhotosProviderProps) => {
     };
   }, [scrollPercent]);
 
-  const openPhotos = useCallback((owner: User | Place, value: Post[]) => {
+  const openPhotos = useCallback((owner: User | Place, value: Photo[]) => {
     setPosts([...value]);
     if (typeof owner['email'] === 'string') {
       setPlace(null);
@@ -144,6 +145,7 @@ export const PhotosProvider = ({ children }: PhotosProviderProps) => {
       setUser(null);
       setPlace(owner as Place);
     }
+    setOpen(true);
   }, []);
 
   const onScroll = useCallback((e) => {
@@ -156,21 +158,25 @@ export const PhotosProvider = ({ children }: PhotosProviderProps) => {
   const handleImagePicked = useCallback(
     (result) => {
       setIsLoadingPhoto(true);
-      console.log('handleImagePicked', 'PLACE', { place });
       if (!result.cancelled && place) {
-        console.log('PLACE ID', place.id);
         uploadFile(result.uri)
           .then((url) => putPhoto(place.id, url))
-          .then((photo) => getPhotos([photo.id, ...place.photos]))
-          .then((photos) => setPhotos([...photos]))
+          .then((photo) => {
+            return getPhotos([photo.id], 0);
+          })
+          .then((results) => {
+            setPhotos([...results, ...photos]);
+          })
           .finally(() => {
             showToast('Foto adicionada com sucesso!');
           })
-          .catch((error) => showToast(error.message))
+          .catch((error) => {
+            showToast(error.message);
+          })
           .finally(() => setIsLoadingPhoto(false));
       }
     },
-    [place, user, putPhoto, uploadFile]
+    [place, user, putPhoto, uploadFile, photos]
   );
 
   const checkPermissions = useCallback(() => {
@@ -192,40 +198,44 @@ export const PhotosProvider = ({ children }: PhotosProviderProps) => {
   }, [showToast]);
 
   const pickerCamera = useCallback(() => {
-    checkPermissions()
-      .then(() => {
-        return ImagePicker.launchCameraAsync({
-          allowsEditing: true,
-          quality: 1,
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        });
-      })
-      .then((result) => {
-        if (!result.cancelled) {
-          handleImagePicked(result);
-        }
-      })
-      .catch((error) => showToast(error.message));
-  }, [handleImagePicked, checkPermissions, showToast]);
+    if (!isLogged) {
+      setOpenLogin(true);
+    } else {
+      checkPermissions()
+        .then(() => {
+          return ImagePicker.launchCameraAsync({
+            allowsEditing: true,
+            quality: 1,
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          });
+        })
+        .then((result) => {
+          if (!result.cancelled) {
+            handleImagePicked(result);
+          }
+        })
+        .catch((error) => showToast(error.message));
+    }
+  }, [handleImagePicked, checkPermissions, showToast, user]);
 
   const pickerGallery = useCallback(() => {
-    ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 1,
-    })
-      .then((result) => {
-        if (!result.cancelled) {
-          handleImagePicked(result);
-        }
+    if (!isLogged) {
+      setOpenLogin(true);
+    } else {
+      ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 1,
       })
-      .catch((error) => showToast(error.message))
-      .finally();
+        .then((result) => {
+          if (!result.cancelled) {
+            handleImagePicked(result);
+          }
+        })
+        .catch((error) => showToast(error.message))
+        .finally();
+    }
   }, [handleImagePicked, showToast]);
-
-  useEffect(() => {
-    setOpen(posts.length > 0);
-  }, [posts]);
 
   useEffect(() => {
     setStatusBarStyle(open ? 'dark' : 'light');
@@ -235,8 +245,8 @@ export const PhotosProvider = ({ children }: PhotosProviderProps) => {
   }, [open]);
 
   useEffect(() => {
-    if (place && place.photos instanceof Array) {
-      getPhotos(place.photos)
+    if (place && place.photos instanceof Array && place.photos.length > 0) {
+      getPhotos(place.photos, 0)
         .then(setPhotos)
         .finally(() => {});
     }
@@ -259,7 +269,10 @@ export const PhotosProvider = ({ children }: PhotosProviderProps) => {
       >
         <Canvas
           colors={ColorsBackground}
-          style={{ paddingTop: 28 + 68, marginBottom: -20 }}
+          style={{
+            paddingTop: 28 + 68,
+            marginBottom: -20,
+          }}
         >
           {place && <PlacePhotoList data={photos} onScroll={onScroll} />}
           {user && <UserPhotoList onScroll={onScroll} />}

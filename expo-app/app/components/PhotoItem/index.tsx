@@ -49,9 +49,10 @@ const Image = styled.Image`
 export type PhotoItemProps = {
   style?: StyleProp<ViewStyle>;
   data: Photo;
+  onDelete: (item: Photo) => void;
 };
 
-export const PhotoItem = ({ style, data }: PhotoItemProps) => {
+export const PhotoItem = ({ style, data, onDelete }: PhotoItemProps) => {
   const { showToast } = useApp();
   const { openPlace } = usePlace();
   const { openImage } = useImageViewer();
@@ -85,6 +86,9 @@ export const PhotoItem = ({ style, data }: PhotoItemProps) => {
         onPress: () => {
           deletePhoto(value.id)
             .then(() => {
+              if (typeof onDelete === 'function') {
+                onDelete(value);
+              }
               showToast('Foto excluída!');
             })
             .catch((error) => {
@@ -111,7 +115,8 @@ export const PhotoItem = ({ style, data }: PhotoItemProps) => {
               size="small"
               style={{ marginLeft: -20 }}
             >
-              {place.title}
+              {place.name.substring(0, 16)}
+              {place.name.length > 16 && '...'}
             </Button>
           )}
         </RowContainer>

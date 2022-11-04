@@ -63,6 +63,54 @@ exports.writeRates = functions.firestore
     }
   });
 
+exports.placesView = functions.firestore
+  .document('/places-views/{documentId}')
+  .onCreate(async (snap, context) => {
+    functions.logger.log('eventType', context.eventType);
+    const view = snap.data();
+
+    const placeSnap = await db.doc(`places/${view.placeId}`).get();
+
+    const place = placeSnap.data();
+
+    if (place) {
+      await await db.doc(`places/${view.placeId}`).set(
+        {
+          views: place.views + 1,
+        },
+        {
+          merge: true,
+        }
+      );
+    }
+
+    await snap.ref.delete();
+  });
+
+exports.photosView = functions.firestore
+  .document('/photos-views/{documentId}')
+  .onCreate(async (snap, context) => {
+    functions.logger.log('eventType', context.eventType);
+    const view = snap.data();
+
+    const photoSnap = await db.doc(`photos/${view.photoId}`).get();
+
+    const photo = photoSnap.data();
+
+    if (photo) {
+      await await db.doc(`photos/${view.photoId}`).set(
+        {
+          views: photo.views + 1,
+        },
+        {
+          merge: true,
+        }
+      );
+    }
+
+    await snap.ref.delete();
+  });
+
 exports.writePlace = functions.firestore
   .document('/places/{documentId}')
   .onWrite(async (change, context) => {
@@ -90,15 +138,21 @@ exports.writePlace = functions.firestore
       }
 
       place.search = [
-        ...place.title.split(' ').filter((term: string) => term.length > 3),
-        ...place.description
+        ...(place.title ?? '')
           .split(' ')
+          .map((term: string) => term.toLocaleLowerCase())
           .filter((term: string) => term.length > 3),
-        ...place?.address?.district
-          ?.split(' ')
+        ...(place.description ?? '')
+          .split(' ')
+          .map((term: string) => term.toLocaleLowerCase())
           .filter((term: string) => term.length > 3),
-        ...place?.address?.street
-          ?.split(' ')
+        ...(place?.address?.district ?? '')
+          .split(' ')
+          .map((term: string) => term.toLocaleLowerCase())
+          .filter((term: string) => term.length > 3),
+        ...(place?.address?.street ?? '')
+          .split(' ')
+          .map((term: string) => term.toLocaleLowerCase())
           .filter((term: string) => term.length > 3),
       ];
 

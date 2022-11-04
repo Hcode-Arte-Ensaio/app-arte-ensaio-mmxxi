@@ -17,39 +17,44 @@ type FavoritesScreenProps = NativeStackScreenProps<
 
 export const FavoritesScreen = ({ navigation }: FavoritesScreenProps) => {
   const [items, setItems] = useState<Place[]>([]);
+  const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const { getPlacesFavorites, watchPlacesFavorites } = useData();
 
-  const getReloadDataScreen = useCallback((finish) => {
-    return new Promise<void>((resolve, reject) => {
-      setLoading(true);
-      getPlacesFavorites()
-        .then((places) => {
-          setItems(places);
-          resolve();
-        })
-        .catch(reject)
-        .finally(() => {
-          finish();
-          setLoading(false);
-        });
-    });
-  }, []);
+  const getReloadDataScreen = useCallback(
+    (finish) => {
+      return new Promise<void>((resolve, reject) => {
+        setLoading(true);
+        getPlacesFavorites(page)
+          .then((places) => {
+            setItems(places);
+            resolve();
+          })
+          .catch(reject)
+          .finally(() => {
+            finish();
+            setLoading(false);
+          });
+      });
+    },
+    [page]
+  );
 
   useEffect(() => {
     setLoading(true);
     const ubsubscribe = watchPlacesFavorites((places) => {
+      setPage(0);
       setItems(places);
       setLoading(false);
-    });
+    }, page);
     return () => ubsubscribe();
-  }, [watchPlacesFavorites]);
+  }, [watchPlacesFavorites, page]);
 
   return (
-    <ScreenProvider onRefresh={getReloadDataScreen}>
+    <ScreenProvider>
       <ScreenContent colors={ColorsBackground}>
         <ScreenToolbar onPressBack={() => navigation.navigate(Screen.Places)} />
-        <H1 blackText="Meus" redText="Favoritos" />
+        <H1 blackText="Meus" redText={'Favoritos'} />
         <PlaceList data={items} loading={loading} />
       </ScreenContent>
     </ScreenProvider>

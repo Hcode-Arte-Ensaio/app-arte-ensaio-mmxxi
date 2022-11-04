@@ -17,7 +17,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useState, useCallback, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
-import { ActivityIndicator, Dimensions } from 'react-native';
+import { ActivityIndicator, Dimensions, RefreshControl } from 'react-native';
 import { Button } from '../components/Button';
 import { useData } from '../contexts/DataContext';
 import { Place } from '../types/Place';
@@ -40,6 +40,10 @@ const LogoFooter = styled.Image`
 
 const Relative = styled.View`
   position: relative;
+`;
+
+const ScrollView = styled.ScrollView`
+  flex: 1;
 `;
 
 type PlacesScreenProps = NativeStackScreenProps<typeof Screens, Screen.Places>;
@@ -76,7 +80,7 @@ export const PlacesScreen = ({ navigation }: PlacesScreenProps) => {
       .then((places) => {
         setPlacesFound(places);
       })
-      .catch(() => {
+      .catch((e) => {
         showToast(`Não foi possível obter os lugares pesquisados.`);
       })
       .finally(() => {
@@ -110,23 +114,18 @@ export const PlacesScreen = ({ navigation }: PlacesScreenProps) => {
     setSearchShow(false);
   }, []);
 
-  const getReloadDataScreen = useCallback((finish) => {
-    return new Promise<void>((resolve, reject) => {
-      setIsLoadingPlacesTop(true);
-      getPlacesTop()
-        .then((places) => {
-          setPlacesTop(places);
-          resolve();
-        })
-        .catch(() => {
-          showToast(`Não foi possível obter os lugares populares.`);
-          reject();
-        })
-        .finally(() => {
-          finish();
-          setIsLoadingPlacesTop(false);
-        });
-    });
+  const getReloadDataScreen = useCallback(() => {
+    setIsLoadingPlacesTop(true);
+    getPlacesTop()
+      .then((places) => {
+        setPlacesTop(places);
+      })
+      .catch(() => {
+        showToast(`Não foi possível obter os lugares populares.`);
+      })
+      .finally(() => {
+        setIsLoadingPlacesTop(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -138,76 +137,85 @@ export const PlacesScreen = ({ navigation }: PlacesScreenProps) => {
   }, [searchShow]);
 
   return (
-    <ScreenProvider onRefresh={getReloadDataScreen}>
-      <HeaderAvatar />
-      <ScreenContent>
-        <PaddingSides>
-          <H1 blackText="Explore" redText="São Paulo" />
-          <Input
-            textInputProps={{
-              placeholder: 'Procurar por lugares...',
-              value: search,
-              onChangeText: (value) => setSearch(value),
-              returnKeyType: 'search',
-              onSubmitEditing: () => submitSearch(),
-              clearButtonMode: 'while-editing',
-            }}
-            endIconDisabled={isLoadingSearch}
-            endIcon={
-              isLoadingSearch ? (
-                <ActivityIndicator size={16} color="#FF3D46" />
-              ) : (
-                <SearchIcon />
-              )
-            }
-            onPressAction={() => submitSearch()}
+    <ScreenProvider>
+      <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoadingPlacesTop}
+            onRefresh={getReloadDataScreen}
           />
-        </PaddingSides>
-        <Relative>
-          <Animated.View style={[animatedHomeStyle]}>
-            <PlacesCategory
-              onAfterInit={() => {
-                getReloadDataScreen(() => {}).finally(() => {});
-                setLoadingStart(false);
+        }
+      >
+        <HeaderAvatar />
+        <ScreenContent>
+          <PaddingSides>
+            <H1 blackText="Explore" redText="São Paulo" />
+            <Input
+              textInputProps={{
+                placeholder: 'Procurar por lugares...',
+                value: search,
+                onChangeText: (value) => setSearch(value),
+                returnKeyType: 'search',
+                onSubmitEditing: () => submitSearch(),
+                clearButtonMode: 'while-editing',
               }}
+              endIconDisabled={isLoadingSearch}
+              endIcon={
+                isLoadingSearch ? (
+                  <ActivityIndicator size={16} color="#FF3D46" />
+                ) : (
+                  <SearchIcon />
+                )
+              }
+              onPressAction={() => submitSearch()}
             />
-            {placesTop.length > 0 && (
-              <PaddingSides>
-                <H2 title="Popular" />
-              </PaddingSides>
-            )}
-            {placesTop.length > 0 && (
-              <PlaceList data={placesTop} loading={isLoadingPlacesTop} />
-            )}
-            <LogoFooterWrap onPress={() => navigation.navigate(Screen.About)}>
-              <LogoFooter source={conexaoArte} resizeMode="contain" />
-            </LogoFooterWrap>
-          </Animated.View>
-          <Animated.View
-            style={[
-              {
-                position: 'absolute',
-                left: 0,
-                right: 0,
-                bottom: 0,
-                top: 0,
-                paddingHorizontal: 0,
-                paddingTop: 10,
-              },
-              animatedFoundStyle,
-            ]}
-          >
-            <Button
-              color="text"
-              size="small"
-              propsTouchable={{ onPress: () => clearSearchResult() }}
+          </PaddingSides>
+          <Relative>
+            <Animated.View style={[animatedHomeStyle]}>
+              <PlacesCategory
+                onAfterInit={() => {
+                  getReloadDataScreen();
+                  setLoadingStart(false);
+                }}
+              />
+              {placesTop.length > 0 && (
+                <PaddingSides>
+                  <H2 title="Popular" />
+                </PaddingSides>
+              )}
+              {placesTop.length > 0 && (
+                <PlaceList data={placesTop} loading={isLoadingPlacesTop} />
+              )}
+              <LogoFooterWrap onPress={() => navigation.navigate(Screen.About)}>
+                <LogoFooter source={conexaoArte} resizeMode="contain" />
+              </LogoFooterWrap>
+            </Animated.View>
+            <Animated.View
+              style={[
+                {
+                  position: 'absolute',
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  top: 0,
+                  paddingHorizontal: 0,
+                  paddingTop: 10,
+                },
+                animatedFoundStyle,
+              ]}
             >
-              Limpar resultados da pesquisa
-            </Button>
-            <PlaceList data={placesFound} loading={isLoadingSearch} />
-          </Animated.View>
-        </Relative>
-      </ScreenContent>
+              <Button
+                color="text"
+                size="small"
+                propsTouchable={{ onPress: () => clearSearchResult() }}
+              >
+                Limpar resultados da pesquisa
+              </Button>
+              <PlaceList data={placesFound} loading={isLoadingSearch} />
+            </Animated.View>
+          </Relative>
+        </ScreenContent>
+      </ScrollView>
     </ScreenProvider>
   );
 };

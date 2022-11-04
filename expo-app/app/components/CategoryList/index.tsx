@@ -47,7 +47,6 @@ export const CategoryList = ({ style, onSelect }: CategoryListProps) => {
     getCategories()
       .then(setItems)
       .catch((error) => {
-        console.log(error, error.code);
         showToast('Não foi possível obter a lista de categorias.');
       });
   }, [getCategories]);
