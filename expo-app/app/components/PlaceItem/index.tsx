@@ -31,7 +31,7 @@ const YLayout = styled.View`
 `;
 
 const Title = styled.Text`
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
   color: ${Colors.Black};
 `;

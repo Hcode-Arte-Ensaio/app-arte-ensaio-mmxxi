@@ -9,6 +9,10 @@ import { PlaceList } from '../components/PlaceList';
 import { useData } from '../contexts/DataContext';
 import { Place } from '../types/Place';
 import { useCallback, useEffect, useState } from 'react';
+import { RefreshControl } from 'react-native';
+import styled from '@emotion/native';
+
+const ScrollView = styled.ScrollView``;
 
 type FavoritesScreenProps = NativeStackScreenProps<
   typeof Screens,
@@ -21,24 +25,16 @@ export const FavoritesScreen = ({ navigation }: FavoritesScreenProps) => {
   const [loading, setLoading] = useState(false);
   const { getPlacesFavorites, watchPlacesFavorites } = useData();
 
-  const getReloadDataScreen = useCallback(
-    (finish) => {
-      return new Promise<void>((resolve, reject) => {
-        setLoading(true);
-        getPlacesFavorites(page)
-          .then((places) => {
-            setItems(places);
-            resolve();
-          })
-          .catch(reject)
-          .finally(() => {
-            finish();
-            setLoading(false);
-          });
+  const getReloadDataScreen = useCallback(() => {
+    setLoading(true);
+    getPlacesFavorites(page)
+      .then((places) => {
+        setItems(places);
+      })
+      .finally(() => {
+        setLoading(false);
       });
-    },
-    [page]
-  );
+  }, [page]);
 
   useEffect(() => {
     setLoading(true);
@@ -54,12 +50,23 @@ export const FavoritesScreen = ({ navigation }: FavoritesScreenProps) => {
     };
   }, [watchPlacesFavorites, page]);
 
+  useEffect(() => getReloadDataScreen(), [getReloadDataScreen]);
+
   return (
     <ScreenProvider>
       <ScreenContent colors={ColorsBackground}>
         <ScreenToolbar onPressBack={() => navigation.navigate(Screen.Places)} />
         <H1 blackText="Meus" redText={'Favoritos'} />
-        <PlaceList data={items} loading={loading} />
+        <ScrollView
+          refreshControl={
+            <RefreshControl
+              refreshing={loading}
+              onRefresh={() => getReloadDataScreen()}
+            />
+          }
+        >
+          <PlaceList data={items} loading={loading} />
+        </ScrollView>
       </ScreenContent>
     </ScreenProvider>
   );
