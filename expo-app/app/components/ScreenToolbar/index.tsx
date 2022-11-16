@@ -2,9 +2,15 @@ import styled from '@emotion/native';
 import { Shadow } from 'react-native-shadow-2';
 import { BackIcon } from '../../icons/BackIcon';
 import { ButtonIcon } from '../ButtonIcon';
-import { GestureResponderEvent, StyleProp, ViewStyle } from 'react-native';
+import {
+  GestureResponderEvent,
+  StyleProp,
+  ViewStyle,
+  BackHandler,
+} from 'react-native';
 import { MenuIcon } from '../../icons/MenuIcon';
 import { useDrawerNavigation } from '../../hooks/useDrawerNavigation';
+import { useEffect } from 'react';
 
 const Wrap = styled.View`
   flex-direction: row;
@@ -15,12 +21,24 @@ const Wrap = styled.View`
 `;
 
 export type ScreenToolbarProps = {
-  onPressBack: (event: GestureResponderEvent) => void;
+  onPressBack: (event?: GestureResponderEvent) => void;
   style?: StyleProp<ViewStyle>;
 };
 
 export const ScreenToolbar = ({ onPressBack, style }: ScreenToolbarProps) => {
   const navigation = useDrawerNavigation();
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        console.log('ScreenToolbar BackHandler');
+        onPressBack();
+        return true;
+      }
+    );
+
+    return () => backHandler.remove();
+  }, []);
   return (
     <Wrap style={style}>
       <Shadow

@@ -6,7 +6,7 @@ import {
   useState,
   useEffect,
 } from 'react';
-import { Dimensions } from 'react-native';
+import { Dimensions, BackHandler } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -125,6 +125,18 @@ export const EditPlaceProvider = ({ children }) => {
     containerOpacity.value = withSpring(open ? 1 : 0, SPRING_CONFIG);
     topY.value = withSpring(open ? 0 : startY, SPRING_CONFIG);
     buttonLeft.value = withSpring(open ? 0 : buttonStartX, SPRING_CONFIG);
+
+    if (open) {
+      const backHandler = BackHandler.addEventListener(
+        'hardwareBackPress',
+        () => {
+          setOpen(false);
+          return true;
+        }
+      );
+
+      return () => backHandler.remove();
+    }
   }, [open]);
 
   useEffect(() => {

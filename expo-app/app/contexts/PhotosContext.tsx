@@ -8,7 +8,12 @@ import {
   ReactNode,
 } from 'react';
 import * as ImagePicker from 'expo-image-picker';
-import { Dimensions, Platform, ActivityIndicator } from 'react-native';
+import {
+  Dimensions,
+  Platform,
+  ActivityIndicator,
+  BackHandler,
+} from 'react-native';
 import Animated, {
   Extrapolate,
   interpolate,
@@ -250,6 +255,20 @@ export const PhotosProvider = ({ children }: PhotosProviderProps) => {
     right.value = withSpring(open ? 0 : startX, SPRING_CONFIG);
     buttonLeft.value = withSpring(open ? 0 : buttonStartX, SPRING_CONFIG);
     headerTop.value = withSpring(open ? 30 : headerStartY, SPRING_CONFIG);
+
+    if (open) {
+      const backHandler = BackHandler.addEventListener(
+        'hardwareBackPress',
+        () => {
+          setPlace(null);
+          setPhotos([]);
+          setOpen(false);
+          return true;
+        }
+      );
+
+      return () => backHandler.remove();
+    }
   }, [open]);
 
   useEffect(() => {

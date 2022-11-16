@@ -12,7 +12,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import ImageViewer from 'react-native-image-zoom-viewer';
-import { Dimensions } from 'react-native';
+import { Dimensions, BackHandler } from 'react-native';
 import styled from '@emotion/native';
 import { ButtonIcon } from '../components/ButtonIcon';
 import { BackIcon } from '../icons/BackIcon';
@@ -93,6 +93,18 @@ export const ImageViewerProvider = ({ children }: ImageViewerProviderProps) => {
     imageOpacity.value = withSpring(open ? 1 : 0, SPRING_CONFIG);
     topY.value = withSpring(open ? 0 : startY, SPRING_CONFIG);
     buttonLeft.value = withSpring(open ? 0 : buttonStartX, SPRING_CONFIG);
+
+    if (open) {
+      const backHandler = BackHandler.addEventListener(
+        'hardwareBackPress',
+        () => {
+          setOpen(false);
+          return true;
+        }
+      );
+
+      return () => backHandler.remove();
+    }
   }, [open]);
 
   useEffect(() => {

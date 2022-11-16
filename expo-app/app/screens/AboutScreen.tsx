@@ -56,7 +56,6 @@ export const AboutScreen = ({ navigation }: AboutScreenProps) => {
           </Text>
           <Logo source={conexaoArte} />
           <Logo source={hcode} />
-          <Logo source={arteEnsaio} />
           <Logo source={saoPaulo} />
           <Logo source={vinci} />
           <Logo source={valid} />

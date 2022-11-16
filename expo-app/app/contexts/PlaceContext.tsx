@@ -8,7 +8,7 @@ import {
   useCallback,
 } from 'react';
 import { Place } from '../types/Place';
-import { Dimensions } from 'react-native';
+import { Dimensions, BackHandler } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -97,6 +97,19 @@ export const PlaceProvider = ({ children }: PlaceProviderProps) => {
     setTheme();
     right.value = withSpring(open ? 0 : startX, SPRING_CONFIG);
     buttonLeft.value = withSpring(open ? 0 : buttonStartX, SPRING_CONFIG);
+
+    if (open) {
+      const backHandler = BackHandler.addEventListener(
+        'hardwareBackPress',
+        () => {
+          console.log('PlaceContext hardwareBackPress');
+          setOpen(false);
+          setPlace(null);
+          return true;
+        }
+      );
+      return backHandler.remove();
+    }
   }, [open, setTheme]);
 
   return (
