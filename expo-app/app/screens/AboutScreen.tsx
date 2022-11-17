@@ -47,25 +47,27 @@ export const AboutScreen = ({ navigation }: AboutScreenProps) => {
         style={{ height: 'auto' }}
       >
         <ScreenToolbar onPressBack={() => navigation.navigate(Screen.Places)} />
-        <H1 blackText="Sobre" redText="Conexão Arte" />
-        <PaddingSides>
-          <Text>
-            Este app foi desenvolvido em curso gratiuito ministrado pela Hcode
-            Treinamentos junto com a Arte e Ensaio e com apoio da Prefeitura de
-            São Paulo e os seguintes patrocinadores:
-          </Text>
-          <Logo source={conexaoArte} />
-          <Logo source={hcode} />
-          <Logo source={saoPaulo} />
-          <Logo source={vinci} />
-          <Logo source={valid} />
-          <Logo source={tivit} />
-          <Logo source={neo} />
-          <Logo source={fsbComunicacao} />
-          <Logo source={ezTec} />
-          <Logo source={eTamussino} />
-          <Logo source={associacao} />
-        </PaddingSides>
+        <ScrollView>
+          <H1 blackText="Sobre" redText="Conexão Arte" />
+          <PaddingSides>
+            <Text>
+              Este app foi desenvolvido em curso gratiuito ministrado pela Hcode
+              Treinamentos junto com a Arte e Ensaio e com apoio da Prefeitura
+              de São Paulo e os seguintes patrocinadores:
+            </Text>
+            <Logo source={conexaoArte} />
+            <Logo source={hcode} />
+            <Logo source={saoPaulo} />
+            <Logo source={vinci} />
+            <Logo source={valid} />
+            <Logo source={tivit} />
+            <Logo source={neo} />
+            <Logo source={fsbComunicacao} />
+            <Logo source={ezTec} />
+            <Logo source={eTamussino} />
+            <Logo source={associacao} />
+          </PaddingSides>
+        </ScrollView>
       </ScreenContent>
     </ScreenProvider>
   );

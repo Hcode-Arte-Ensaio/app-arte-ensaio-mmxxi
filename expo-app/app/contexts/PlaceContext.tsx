@@ -97,20 +97,20 @@ export const PlaceProvider = ({ children }: PlaceProviderProps) => {
     setTheme();
     right.value = withSpring(open ? 0 : startX, SPRING_CONFIG);
     buttonLeft.value = withSpring(open ? 0 : buttonStartX, SPRING_CONFIG);
-
-    if (open) {
-      const backHandler = BackHandler.addEventListener(
-        'hardwareBackPress',
-        () => {
-          console.log('PlaceContext hardwareBackPress');
-          setOpen(false);
-          setPlace(null);
-          return true;
-        }
-      );
-      return backHandler.remove();
-    }
   }, [open, setTheme]);
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        setOpen(false);
+        setPlace(null);
+        return true;
+      }
+    );
+
+    return () => backHandler.remove();
+  }, [open]);
 
   return (
     <PlaceContext.Provider value={{ place, openPlace }}>

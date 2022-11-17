@@ -21,24 +21,27 @@ const Wrap = styled.View`
 `;
 
 export type ScreenToolbarProps = {
-  onPressBack: (event?: GestureResponderEvent) => void;
+  onPressBack?: (event?: GestureResponderEvent) => void;
   style?: StyleProp<ViewStyle>;
 };
 
 export const ScreenToolbar = ({ onPressBack, style }: ScreenToolbarProps) => {
   const navigation = useDrawerNavigation();
   useEffect(() => {
-    const backHandler = BackHandler.addEventListener(
-      'hardwareBackPress',
-      () => {
-        console.log('ScreenToolbar BackHandler');
-        onPressBack();
-        return true;
-      }
-    );
+    if (typeof onPressBack === 'function') {
+      const backHandler = BackHandler.addEventListener(
+        'hardwareBackPress',
+        () => {
+          if (typeof onPressBack === 'function') {
+            onPressBack();
+          }
+          return true;
+        }
+      );
 
-    return () => backHandler.remove();
-  }, []);
+      return () => backHandler.remove();
+    }
+  }, [onPressBack]);
   return (
     <Wrap style={style}>
       <Shadow
@@ -51,7 +54,13 @@ export const ScreenToolbar = ({ onPressBack, style }: ScreenToolbarProps) => {
           icon={<BackIcon />}
           color="white"
           circle={true}
-          touchableProps={{ onPress: (e) => onPressBack(e) }}
+          touchableProps={{
+            onPress: (e) => {
+              if (typeof onPressBack === 'function') {
+                onPressBack(e);
+              }
+            },
+          }}
         />
       </Shadow>
       <ButtonIcon
