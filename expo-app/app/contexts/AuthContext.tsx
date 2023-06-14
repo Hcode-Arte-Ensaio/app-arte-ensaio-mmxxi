@@ -18,7 +18,7 @@ import { Colors, ColorsBackground } from '../values/colors';
 import { ButtonIcon } from '../components/ButtonIcon';
 import { BackIcon } from '../icons/BackIcon';
 import { Shadow } from 'react-native-shadow-2';
-import { Dimensions } from 'react-native';
+import { Dimensions, BackHandler } from 'react-native';
 import { User } from '../types/User';
 import { OverlayView } from '../components/OverlayView';
 import {
@@ -414,6 +414,18 @@ export const AuthProvider = ({ children }) => {
     setStatusBarStyle(open ? 'light' : 'dark');
     bottom.value = withSpring(open ? 0 : startY, SPRING_CONFIG);
     left.value = withSpring(open ? 0 : startX, SPRING_CONFIG);
+
+    if (open) {
+      const backHandler = BackHandler.addEventListener(
+        'hardwareBackPress',
+        () => {
+          setOpen(false);
+          return true;
+        }
+      );
+
+      return () => backHandler.remove();
+    }
   }, [open]);
 
   useEffect(() => {

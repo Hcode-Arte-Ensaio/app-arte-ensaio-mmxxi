@@ -14,7 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { OverlayView } from '../components/OverlayView';
 import { Place } from '../types/Place';
-import { Dimensions } from 'react-native';
+import { BackHandler, Dimensions } from 'react-native';
 import { Canvas } from '../components/Canvas';
 import { Button } from '../components/Button';
 import { Colors, ColorsBackground } from '../values/colors';
@@ -127,6 +127,16 @@ export const RateProvider = ({ children }) => {
   useEffect(() => {
     setStatusBarStyle(open ? 'light' : 'dark');
     bottom.value = withSpring(open ? 0 : startY, SPRING_CONFIG);
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        setOpen(false);
+        return true;
+      }
+    );
+
+    return () => backHandler.remove();
   }, [open]);
 
   return (

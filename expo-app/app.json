@@ -4,7 +4,7 @@
     "scheme": "conart",
     "slug": "conexao-arte-sp",
     "owner": "arte-ensaio",
-    "version": "6.2.3",
+    "version": "6.2.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "light",
@@ -22,8 +22,8 @@
       "bundleIdentifier": "br.com.arteensaio.conexaoarte"
     },
     "android": {
-      "package": "br.com.arteensaio.sp.conexaoarte",
-      "versionCode": 38,
+      "package": "com.arteensaio.sp.conexaoarte",
+      "versionCode": 39,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
