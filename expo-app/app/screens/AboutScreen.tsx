@@ -51,13 +51,13 @@ export const AboutScreen = ({ navigation }: AboutScreenProps) => {
           <H1 blackText="Sobre" redText="Conexão Arte" />
           <PaddingSides>
             <Text>
-              Este app foi desenvolvido em curso gratiuito ministrado pela Hcode
-              Treinamentos junto com a Arte e Ensaio e com apoio da Prefeitura
-              de São Paulo e os seguintes patrocinadores:
+              Este app foi desenvolvido com incentivo fiscal, PROMAC, Programa de Incentivo à Cultura da Secretaria Municipal de Cultura de São Paulo.
+              Curso gratuito ministrado pela Hcode
+              Treinamentos junto com a Artemídia.
             </Text>
+            <Logo source={saoPaulo} />
             <Logo source={conexaoArte} />
             <Logo source={hcode} />
-            <Logo source={saoPaulo} />
             <Logo source={vinci} />
             <Logo source={valid} />
             <Logo source={tivit} />
