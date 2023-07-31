@@ -239,10 +239,10 @@ export const StartProvider = ({ children }: StartProviderProps) => {
             </Animated.View>
             <Animated.View style={animatedText2Style}>
               <P>
-                Realização da Secretaria Municipal de Cultura de São Paulo via
+                  Secretaria Municipal de Cultura de São Paulo via
                 PROMAC
               </P>
-              <P>Apresentam:</P>
+              <P>Apresenta:</P>
             </Animated.View>
             <Animated.View style={animatedText3Style}>
               <ImageWrap>

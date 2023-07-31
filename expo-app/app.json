@@ -14,9 +14,12 @@
       "backgroundColor": "#ffffff"
     },
     "updates": {
-      "fallbackToCacheTimeout": 0
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/791687e1-d48f-409d-9c65-1fb5aa2452dc"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "br.com.arteensaio.conexaoarte"
@@ -46,6 +49,9 @@
           "microphonePermission": false
         }
       ]
-    ]
+    ],
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    }
   }
 }
