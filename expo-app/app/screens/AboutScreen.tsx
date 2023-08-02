@@ -55,6 +55,7 @@ export const AboutScreen = ({ navigation }: AboutScreenProps) => {
               Curso gratuito ministrado pela Hcode
               Treinamentos junto com a Artemídia.
             </Text>
+            <Text>Para novos locais e sugestões envie um e-mail: paula@artemidia.art.br</Text>
             <Logo source={saoPaulo} />
             <Logo source={conexaoArte} />
             <Logo source={hcode} />
