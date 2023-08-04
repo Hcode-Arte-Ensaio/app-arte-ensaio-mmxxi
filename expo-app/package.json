@@ -1,6 +1,6 @@
 {
   "name": "app-arte-ensaio-mmxxi",
-  "version": "6.2.4",
+  "version": "6.4.0",
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "prestart": "npx rimraf .expo",
